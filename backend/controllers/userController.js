@@ -81,6 +81,34 @@ const getMe = asyncHandler(async (req, res) => {
   });
 });
 
+// @desc Change user password
+// @route POST /api/users/me
+// @access private
+const changePassword = asyncHandler(async (req, res) => {
+  const { password } = req.body;
+
+  if (!password) {
+    res.status(400);
+    throw new Error("Please add new password");
+  }
+
+  // Hash Password
+  const salt = await bcrypt.genSalt(10);
+  const hashedPassword = await bcrypt.hash(password, salt);
+
+  // Create user
+  const user = await User.findByIdAndUpdate(req.user.id, {
+    password: hashedPassword,
+  });
+
+  res.status(201).json({
+    _id: user.id,
+    name: user.name,
+    email: user.email,
+    token: generateToken(user._id),
+  });
+});
+
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, {
     expiresIn: "30d",
@@ -91,4 +119,5 @@ module.exports = {
   registerUser,
   loginUser,
   getMe,
+  changePassword,
 };
