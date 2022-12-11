@@ -50,26 +50,19 @@ const getBoard = asyncHandler(async (req, res) => {
     if (req.user.boards.includes(boardId)) {
         // User can access this board.
         try {
-            // Find all boards whose id appears in the
-            // user's master list of boards.
-            const boards = await Board.find({
-                _id: {
-                    $in: req.user.boards
-                }
-            });
-            // Return HTTP 200 Ok and all boards
-            // belonging to user.
-            res.status(200).json(boards)
+            // Find all desired board.
+            const board = await Board.findById(boardId);
+            // Return HTTP 200 Ok and desired board.
+            res.status(200).json(board);
         } catch (err) {
             // Error occurred. Return HTTP 500 Internal Server Error.
-            res.status(500).json(err)
+            res.status(500).json(err);
         }
     } else {
         // Requesting user does not own or collaborate on board!
         // Return HTTP 403 Forbidden.
         res.status(403).json('invalid permissions');
     }
-
 });
 
 // @desc Delete given board if owned by user.
