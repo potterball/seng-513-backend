@@ -1,7 +1,10 @@
 const asyncHandler = require("express-async-handler");
+const mongoose = require('mongoose');
+const User = require('../models/userModel')
 const Board = require('../models/board');
 const TaskList = require('../models/taskList');
 const Task = require('../models/task');
+const board = require("../models/board");
 
 // @desc Create a new board.
 // @route POST /api/boards
@@ -9,13 +12,21 @@ const Task = require('../models/task');
 const createBoard = asyncHandler(async (req, res) => {
     try {
         // Create new board instance.
-        const board = await Board.create({
-            owner: req.user._id,
-        });
-        // Update master list of user boards.
-        req.user.boards.push(board._id);
-        // Return board object as json with 201 Created status.
-        res.status(201).json(board);
+        // const userId = mongoose.ObjectId(req.body.user._id);
+        const user = await User.findById(req.user._id);
+        if (!user) {
+            res.status(404).json('invalid permissions');
+        } else {
+            const board = await Board.create({
+                owner: user._id,
+            });
+            // Update master list of user boards.
+            user.boards.push(board._id);
+            const updatedUser = await User.updateOne(user);
+            console.log(updatedUser);
+            // Return board object as json with 201 Created status.
+            res.status(201).json(board);
+        }
     } catch (err) {
         // Error occurred. Return HTTP 500 Internal Server Error.
         res.status(500).json(err);
@@ -29,6 +40,7 @@ const getBoards = asyncHandler(async (req, res) => {
     try {
         // Find all boards whose id appears in the
         // user's master list of boards.
+        // const user = await User.findById(req.user._id);
         const boards = await Board.find({
             _id: {
                 $in: req.user.boards
@@ -72,8 +84,8 @@ const getBoard = asyncHandler(async (req, res) => {
 const deleteBoard = asyncHandler(async (req, res) => {
     const { boardId } = req.params
     // Check if board can be deleted by requesting user.
-    const board = Board.findById(boardId);
-    if (board.owner == req.user._id)
+    const board = await Board.findById(boardId);
+    if (board.owner == req.user.id)
     {
         // Board belongs to requesting user. Can delete!
         try {
@@ -88,7 +100,7 @@ const deleteBoard = asyncHandler(async (req, res) => {
             // Delete board.
             await Board.deleteOne({ _id: boardId });
             // Return HTTP 200 Ok.
-            res.status(200).json('deleted');
+            res.status(200).json('board deleted');
         } catch (err) {
             // Error occurred. Return HTTP 500 Internal Server Error.
             res.status(500).json(err);
@@ -112,14 +124,15 @@ const updateBoard = asyncHandler(async (req, res) => {
             if (title === '') {
                 req.body.title = 'Untitled';
             }
-            const currentBoard = await Board.findById(boardId);
-            if (!currentBoard) {
+            const board = await Board.findById(boardId);
+            if (!board) {
                 // Board does not exist!
                 // Return HTTP 404 Not Found.
                 return res.status(404).json('Board not found');
             }
             // Update board to be the request body.
-            const board = await Board.findByIdAndUpdate(boardId, { $set: req.body });
+            board.title = req.body.title;
+            await Board.updateOne(board);
             res.status(200).json(board)
         } catch (err) {
             // Error occurred. Return HTTP 500 Internal Server Error.

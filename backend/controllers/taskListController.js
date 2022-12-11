@@ -13,7 +13,7 @@ const createTaskList = asyncHandler(async (req, res) => {
         if (req.user.boards.includes(boardId)) {
             // User has permission to access board.
             // Create new taskList .
-            const taskList = await TaskList.create({ owner: boardId });
+            const taskList = await TaskList.create({ board: boardId });
             // Return HTTP 201 Created.
             res.status(201).json(taskList);
         } else {
@@ -111,15 +111,20 @@ const updateTaskList = asyncHandler(async (req, res) => {
         if (!taskList) {
             // TaskList does not exist!
             // Return HTTP 404 Not Found.
-            return res.status(404).json('Board not found');
+            return res.status(404).json('task list not found');
         } else if (req.user.boards.includes(taskList.board)) {
             // User has access to associated board.
             if (title === '') {
                 req.body.title = 'Untitled';
             }
-            // Update taskList to be the request body.
-            const updatedTaskList = await Board.findByIdAndUpdate(taskListId, { $set: req.body });
-            res.status(200).json(updatedTaskList);
+            await TaskList.findByIdAndUpdate(
+                taskListId,
+                {
+                    board: taskList.board,
+                    title: title,
+                }
+            );
+            res.status(200).json(await TaskList.findById(taskListId));
         } else {
             // Requesting user does not own or collaborate on board!
             // Return HTTP 403 Forbidden.
