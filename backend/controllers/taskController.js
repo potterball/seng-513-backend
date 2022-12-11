@@ -1,8 +1,6 @@
 const asyncHandler = require("express-async-handler");
-const Board = require('../models/board');
 const TaskList = require('../models/taskList');
 const Task = require('../models/task');
-const User = require("../models/userModel");
 
 // @desc Create a new task.
 // @route POST /api/tasks/taskListId
@@ -15,9 +13,15 @@ const createTask = asyncHandler(async (req, res) => {
             res.status(404).json('task list not found');
         }
         else if (req.user.boards.includes(taskList.board)) {
-            // User has permission to access board.
-            // Create new task .
-            const task = await Task.create({ taskList: taskList._id });
+            // User has permission to access board. Create new task in list.
+            const taskCount = (await Task.find({ taskList: taskListId })).length;
+            const task = await Task.create(
+                {
+                    taskList: taskListId,
+                    creator: req.user._id,
+                    position: taskCount,
+                }
+            );
             // Return HTTP 201 Created.
             res.status(201).json(task);
         } else {
@@ -37,16 +41,16 @@ const createTask = asyncHandler(async (req, res) => {
 const getTasks = asyncHandler(async (req, res) => {
     const { taskListId } = req.params;
     try {
-        const taskList = await TaskList
-            .findById(taskListId)
-            .sort({ position: 1 });
+        const taskList = await TaskList.findById(taskListId);
         if (!taskList) {
             res.status(404).json('task list not found');
         }
         else if (req.user.boards.includes(taskList.board)) {
             // User has permission to access board.
-            // Find all task lists belonging to the given board.
-            const tasks = await TaskList.find({ taskList: taskListId });
+            // Find all task lists belonging to the given task list.
+            const tasks = await Task
+                .find({ taskList: taskListId })
+                .sort({ position: 1 });
             // Return HTTP 200 Ok.
             res.status(200).json(tasks);
         } else {
@@ -66,7 +70,7 @@ const getTasks = asyncHandler(async (req, res) => {
 const getTask = asyncHandler(async (req, res) => {
     const { taskId } = req.params;
     try {
-        const task = await TaskList.findById(taskId);
+        const task = await Task.findById(taskId);
         if (!task) {
             res.status(404).json('task not found');
         }
@@ -101,6 +105,17 @@ const deleteTask = asyncHandler(async (req, res) => {
         } else {
             const taskList = await TaskList.findById(task.taskList);
             if (req.user.boards.includes(taskList.board)) {
+                // Update position in list for other tasks.
+                const tasksToUpdate = await Task.find({ taskList: task.taskList })
+                        .where('position')
+                        .gt(task.position)
+                        .sort({ position: 1 });
+                const shift = -1;
+                for (let i = 0; i < tasksToUpdate.length; i++) {
+                    const t = tasksToUpdate[i];
+                    const newPos = t.position + shift;
+                    await Task.findByIdAndUpdate(t._id, { position: newPos });
+                }
                 // User can access this board and delete task.
                 // Delete task from list.
                 await Task.deleteOne({ _id: taskId });
@@ -123,10 +138,12 @@ const deleteTask = asyncHandler(async (req, res) => {
 // @access Public
 const updateTask = asyncHandler(async (req, res) => {
     const { taskId } = req.params
-    const { taskList, creator, title, description, position } = req.body
+    const { taskList, title, description, position } = req.body
     try {
+        const task = await Task.findById(taskId);
+        let newTaskListId = task.taskList,
+            newTitle, newDescription, newPosition;
         // Check if user can modify task.
-        const task = await TaskList.findById(taskId);
         if (!task) {
             // Task does not exist! Return HTTP 404 Not Found.
             return res.status(404).json('task not found');
@@ -135,60 +152,75 @@ const updateTask = asyncHandler(async (req, res) => {
             if (req.user.boards.includes(currentTaskList.board)) {
                 // User has access to associated board and can update task.
                 // Validated task list id.
-                if (!taskList) {
-                    req.body.task
-                }
-                else if (taskList != task.taskList){
+                if (taskList && taskList != task.taskList){
                     const newTaskList = await TaskList.findById(taskList);
-                    if (!newTaskList) {
-                        // I could return HTTP Bad Request or
-                        // default to the original task list.
-                        req.body.taskList = task.taskList;
+                    if (newTaskList) {
+                        newTaskListId = taskList;
                     }
-                }
-                // Validate task list creator.
-                if (!creator || creator != task.creator) {
-                    // I could throw an HTTP bad reqiest, change this to a 'patch'
-                    // complete with a DTO, or just default to the correct value.
-                    // I am defaulting.
-                    req.body.creator = task.creator;
+                    // I am just gonna default to the original task list if
+                    // the proposed new one does not exist.
                 }
                 // Validate task list title.
-                if (!title || title === '') {
-                    req.body.title = 'Untitled';
+                if (!title) {
+                    newTitle = task.title;
+                } else if (title === '') {
+                    newTitle = 'Untitled';
+                } else {
+                    newTitle = title;
                 }
                 // Validate task list description.
-                if (!description || description === '') {
-                    req.body.description = 'Add task description...';
+                if (!description) {
+                    newDescription = task.description;
+                } else if (description === '') {
+                    newDescription = 'Add task description...';
+                } else {
+                    newDescription = description;
                 }
                 // Validate new position.
-                const allTasks = await Task.find({ taskList: task.taskList });
-                if (allTasks) {
-                    const taskCount = allTasks.Count();
-                    // Validate position.
-                    if (!position || position < 1 || position >= taskCount ) {
-                        // I could throw a HTTP Bad request or something, but I am just gonna default
-                        // to the original position in the list.
-                        req.body.position = task.position;
-                    } else {
-                        // Update position in list for other things.
-                        // Not sure if this works at all tbh.
-                        const tasksToUpdate = await Task.find({ taskLIst: task.taskList })
+                const taskCount = (await Task.find({ taskList: task.taskList })).length;
+                // Validate position.
+                if (position === undefined || (position < 0 || position >= taskCount)) {
+                    // I could throw a HTTP Bad request or something, but I am just gonna default
+                    // to the original position in the list.
+                    newPosition = task.position;
+                } else {
+                    // Update position in list for other tasks. Not sure if this works at all tbh.
+                    let tasksToUpdate, shift;
+                    if (position > task.position) {
+                        tasksToUpdate = await Task.find({ taskList: task.taskList })
                             .where('position')
-                            .gt(position)
+                            .gt(task.position)
+                            .lte(position)
                             .sort({ position: 1 });
-                        let newPos = position + 1;
-                        for (const t in tasksToUpdate) {
-                            t.position = newPos;
-                            await Task.findByIdAndUpdate(t._id, t);
-                            newPos += 1;
-                        }
+                        shift = -1;
+                    } else if (position < task.position) {
+                        tasksToUpdate = await Task.find({ taskList: task.taskList })
+                            .where('position')
+                            .gte(position)
+                            .lt(task.position)
+                            .sort({ position: 1 });
+                        shift = 1;
                     }
+                    for (let i = 0; i < tasksToUpdate.length; i++) {
+                        const t = tasksToUpdate[i];
+                        const newPos = t.position + shift;
+                        await Task.findByIdAndUpdate(t._id, { position: newPos });
+                    }
+                    newPosition = position;
                 }
                 // Update task to be the request body.
-                const updatedTask = await Task.findByIdAndUpdate(taskId, { $set: req.body });
+                await Task.findByIdAndUpdate(
+                    taskId,
+                    {
+                        taskList: newTaskListId,
+                        creator: task.creator,
+                        title: newTitle,
+                        description: newDescription,
+                        position: newPosition,
+                    }
+                );
                 // Return HTTP 200 Ok
-                res.status(200).json(updatedTask);
+                res.status(200).json(await Task.findById(taskId));
             } else {
                 // Requesting user does not own or collaborate on board!
                 // Return HTTP 403 Forbidden.

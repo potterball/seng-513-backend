@@ -21,7 +21,7 @@ const taskSchema = new mongoose.Schema({
     // Description of task.
     description: {
         type: String,
-        default: 'Untitled'
+        default: 'Add description here...'
     },
     // Position in task list.
     position: {
