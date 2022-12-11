@@ -15,7 +15,15 @@ const userSchema = mongoose.Schema(
       type: String,
       required: [true, "Please add a password"],
     },
-    boards: [{ type : mongoose.Schema.Types.ObjectId, ref: 'Board' }],
+    boards: [{ type: mongoose.Schema.Types.ObjectId, ref: "Board" }],
+    securityQ: {
+      type: String,
+      required: [true, "Please add a security question"],
+    },
+    securityA: {
+      type: String,
+      required: [true, "Please add an answer"],
+    },
   },
   {
     timestamps: true,

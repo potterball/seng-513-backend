@@ -7,9 +7,9 @@ const User = require("../models/userModel");
 // @route POST /api/users
 // @access Public
 const registerUser = asyncHandler(async (req, res) => {
-  const { name, email, password } = req.body;
+  const { name, email, password, securityQ, securityA } = req.body;
 
-  if (!name || !email || !password) {
+  if (!name || !email || !password || !securityQ || !securityA) {
     res.status(400);
     throw new Error("Please add all fields");
   }
@@ -31,6 +31,8 @@ const registerUser = asyncHandler(async (req, res) => {
     name,
     email,
     password: hashedPassword,
+    securityQ,
+    securityA,
   });
 
   if (user) {
@@ -56,7 +58,7 @@ const loginUser = asyncHandler(async (req, res) => {
   const user = await User.findOne({ email });
 
   if (user && (await bcrypt.compare(password, user.password))) {
-    res.json({
+    res.status(200).json({
       _id: user.id,
       name: user.name,
       email: user.email,
@@ -109,6 +111,47 @@ const changePassword = asyncHandler(async (req, res) => {
   });
 });
 
+const getSecurityQuestion = asyncHandler(async (req, res) => {
+  const { email } = req.body;
+
+  // Check if user exists
+  const userExists = await User.findOne({ email });
+
+  if (!userExists) {
+    res.status(400);
+    throw new Error("User does not exist");
+  }
+
+  res.status(200).json({
+    email,
+    securityQ: userExists.securityQ,
+  });
+});
+
+const checkSecurityAnswer = asyncHandler(async (req, res) => {
+  const { email, answer } = req.body;
+
+  // Check if user exists
+  const userExists = await User.findOne({ email });
+
+  if (!userExists) {
+    res.status(400);
+    throw new Error("User does not exist");
+  }
+
+  if (answer.normalize() !== userExists.securityA.normalize()) {
+    res.status(400);
+    throw new Error("Incorrect answer");
+  }
+
+  res.status(200).json({
+    _id: userExists.id,
+    name: userExists.name,
+    email: userExists.email,
+    token: generateToken(userExists._id),
+  });
+});
+
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, {
     expiresIn: "30d",
@@ -120,4 +163,6 @@ module.exports = {
   loginUser,
   getMe,
   changePassword,
+  getSecurityQuestion,
+  checkSecurityAnswer,
 };
