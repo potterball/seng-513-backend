@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const taskListSchema = new mongoose.Schema({
     // Board task list is associated with.
     board: {
-        type: Schema.Types.ObjectId,
+        type: mongoose.Schema.Types.ObjectId,
         ref: 'Board',
         required: true
     },
@@ -19,4 +19,4 @@ const taskListSchema = new mongoose.Schema({
     // },
 });
 
-modules.export = mongoose.Model('TaskList', taskListSchema);
+module.exports = mongoose.model('TaskList', taskListSchema);

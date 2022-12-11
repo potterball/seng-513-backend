@@ -13,6 +13,9 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
 app.use("/api/users", require("./routes/userRoutes"));
+app.use("/api/boards", require("./routes/boardRoutes"));
+app.use("/api/taskLists", require("./routes/taskListRoutes"));
+app.use("/api/tasks", require("./routes/taskRoutes"));
 
 app.use(errorHandler);
 

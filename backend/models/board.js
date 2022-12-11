@@ -4,7 +4,7 @@ const boardSchema = new mongoose.Schema(
     {
         // Owner of the board.
         owner: {
-            type: Schema.Types.ObjectId,
+            type: mongoose.Schema.Types.ObjectId,
             ref: 'User',
             required: true
         },
@@ -21,4 +21,4 @@ const boardSchema = new mongoose.Schema(
     }
 );
 
-modules.export = mongoose.Model('Board', boardSchema);
+module.exports = mongoose.model('Board', boardSchema);

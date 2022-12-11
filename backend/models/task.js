@@ -3,13 +3,13 @@ const mongoose = require('mongoose');
 const taskSchema = new mongoose.Schema({
     // Task list this task belongs to.
     taskList: {
-        type: Schema.Types.ObjectId,
+        type: mongoose.Schema.Types.ObjectId,
         ref: 'TaskList',
         required: true
     },
     // Creator of the task.
     creator: {
-        type: Schema.Types.ObjectId,
+        type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
         required: true
     },
@@ -29,4 +29,4 @@ const taskSchema = new mongoose.Schema({
     }
 });
 
-modules.export = mongoose.Model('Task', taskSchema);
+module.exports = mongoose.model('Task', taskSchema);

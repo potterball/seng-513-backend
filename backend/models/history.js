@@ -3,13 +3,13 @@ const mongoose = require('mongoose');
 const historySchema = new mongoose.Schema({
     // Task modification was performed on.
     task: {
-        type: Schema.Types.ObjectId,
+        type: mongoose.Schema.Types.ObjectId,
         ref: 'Task',
         required: true
     },
     // Person who performed edit on task.
     user: {
-        type: Schema.Types.ObjectId,
+        type: mongoose.Schema.Types.ObjectId,
         ref: 'TaskList',
         required: true
     },
@@ -20,4 +20,4 @@ const historySchema = new mongoose.Schema({
     }
 });
 
-modules.export = mongoose.Model('HistoryEntry', historySchema);
+module.exports = mongoose.model('HistoryEntry', historySchema);
