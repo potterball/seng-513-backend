@@ -19,6 +19,7 @@ const createTask = asyncHandler(async (req, res) => {
                 {
                     taskList: taskListId,
                     creator: req.user._id,
+                    title: req.body.title ?? "",
                     position: taskCount,
                 }
             );
@@ -139,6 +140,7 @@ const deleteTask = asyncHandler(async (req, res) => {
 const updateTask = asyncHandler(async (req, res) => {
     const { taskId } = req.params
     const { taskList, title, description, position } = req.body
+    console.log(req.body)
     try {
         const task = await Task.findById(taskId);
         let newTaskListId = task.taskList,
@@ -177,7 +179,8 @@ const updateTask = asyncHandler(async (req, res) => {
                     newDescription = description;
                 }
                 // Validate new position.
-                const taskCount = (await Task.find({ taskList: task.taskList })).length;
+                const taskCount = (await Task.find({ taskList: newTaskListId.taskList })).length;
+                console.log(taskCount)
                 // Validate position.
                 if (position === undefined || (position < 0 || position >= taskCount)) {
                     // I could throw a HTTP Bad request or something, but I am just gonna default
