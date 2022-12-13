@@ -22,6 +22,21 @@ const registerUser = asyncHandler(async (req, res) => {
     throw new Error("User already exists");
   }
 
+  // Verifying email
+  const emailVerification = await fetch(
+    `https://emailvalidation.abstractapi.com/v1/?api_key=${process.env.ABSTRACT_API_KEY}&email=${email}`
+  );
+  if (!emailVerification.ok) {
+    res.status(400);
+    throw new Error("Email ID cannot be verified");
+  }
+  const dataEmail = await emailVerification.json();
+
+  if (!dataEmail.deliverability || dataEmail.deliverability !== "DELIVERABLE") {
+    res.status(400);
+    throw new Error("Email ID cannot be verified");
+  }
+
   // Hash Password
   const salt = await bcrypt.genSalt(10);
   const hashedPassword = await bcrypt.hash(password, salt);
