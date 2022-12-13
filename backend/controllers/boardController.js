@@ -189,10 +189,13 @@ const inviteUser = asyncHandler(async (req, res) => {
       } else {
         await User.updateOne(user, { $push: { boards: board } });
       }
+
+      res.status(201).json({ message: "success" });
+      
     } catch (err) {
       res.status(500).json(err);
     }
-    res.status(201).json({ message: "success" });
+    
   } else {
     // Requesting user does not own or collaborate on board!
     // Cannot update board! Return HTTP 403 Forbidden.
