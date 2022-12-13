@@ -192,6 +192,7 @@ const inviteUser = asyncHandler(async (req, res) => {
     } catch (err) {
       res.status(500).json(err);
     }
+    res.status(201).json({ message: "success" });
   } else {
     // Requesting user does not own or collaborate on board!
     // Cannot update board! Return HTTP 403 Forbidden.
