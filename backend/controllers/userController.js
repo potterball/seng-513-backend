@@ -1,7 +1,9 @@
+const axios = require("axios");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 const asyncHandler = require("express-async-handler");
 const User = require("../models/userModel");
+const { response } = require("express");
 
 // @desc Register a new user
 // @route POST /api/users
@@ -23,14 +25,17 @@ const registerUser = asyncHandler(async (req, res) => {
   }
 
   // Verifying email
-  const emailVerification = await fetch(
-    `https://emailvalidation.abstractapi.com/v1/?api_key=${process.env.ABSTRACT_API_KEY}&email=${email}`
-  );
-  if (!emailVerification.ok) {
+  let response;
+  try {
+    response = await axios.get(
+      `https://emailvalidation.abstractapi.com/v1/?api_key=${process.env.ABSTRACT_API_KEY}&email=${email}`
+    );
+  } catch (error) {
     res.status(400);
     throw new Error("Email ID cannot be verified");
   }
-  const dataEmail = await emailVerification.json();
+
+  const dataEmail = await response.data;
 
   if (!dataEmail.deliverability || dataEmail.deliverability !== "DELIVERABLE") {
     res.status(400);
