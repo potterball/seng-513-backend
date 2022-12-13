@@ -35,7 +35,7 @@ const registerUser = asyncHandler(async (req, res) => {
     throw new Error("Email ID cannot be verified");
   }
 
-  const dataEmail = await response.data;
+  const dataEmail = response.data;
 
   if (!dataEmail.deliverability || dataEmail.deliverability !== "DELIVERABLE") {
     res.status(400);
