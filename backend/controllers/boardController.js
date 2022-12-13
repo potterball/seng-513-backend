@@ -22,8 +22,7 @@ const createBoard = asyncHandler(async (req, res) => {
             });
             // Update master list of user boards.
             user.boards.push(board._id);
-            const updatedUser = await User.updateOne(user);
-            console.log(updatedUser);
+            await User.updateOne(user);
             // Return board object as json with 201 Created status.
             res.status(201).json(board);
         }
