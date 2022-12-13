@@ -3,6 +3,7 @@ const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 const asyncHandler = require("express-async-handler");
 const User = require("../models/userModel");
+const Invite = require("../models/invite");
 const { response } = require("express");
 
 // @desc Register a new user
@@ -47,13 +48,30 @@ const registerUser = asyncHandler(async (req, res) => {
   const hashedPassword = await bcrypt.hash(password, salt);
 
   // Create user
-  const user = await User.create({
-    name,
-    email,
-    password: hashedPassword,
-    securityQ,
-    securityA,
-  });
+  const inviteExists = await Invite.findOne({ email });
+
+  let user;
+
+  if (inviteExists) {
+    user = await User.create({
+      name,
+      email,
+      password: hashedPassword,
+      boards: inviteExists.invitedboards,
+      securityQ,
+      securityA,
+    });
+
+    await Invite.deleteOne(inviteExists);
+  } else {
+    user = await User.create({
+      name,
+      email,
+      password: hashedPassword,
+      securityQ,
+      securityA,
+    });
+  }
 
   if (user) {
     res.status(201).json({
