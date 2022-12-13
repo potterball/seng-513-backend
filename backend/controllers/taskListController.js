@@ -13,7 +13,7 @@ const createTaskList = asyncHandler(async (req, res) => {
         if (req.user.boards.includes(boardId)) {
             // User has permission to access board.
             // Create new taskList .
-            const taskList = await TaskList.create({ board: boardId });
+            const taskList = await TaskList.create({ board: boardId, title: req.body?.groupTitle ?? "" });
             // Return HTTP 201 Created.
             res.status(201).json(taskList);
         } else {
