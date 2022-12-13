@@ -19,10 +19,10 @@ const createBoard = asyncHandler(async (req, res) => {
         } else {
             const board = await Board.create({
                 owner: user._id,
+                title: req.body?.boardName ?? ""
             });
             // Update master list of user boards.
-            user.boards.push(board._id);
-            await User.updateOne(user);
+            await User.updateOne(user, {$push: { boards: board }});
             // Return board object as json with 201 Created status.
             res.status(201).json(board);
         }
